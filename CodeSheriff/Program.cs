@@ -33,7 +33,7 @@ namespace CodeSheriff
                 Log.WriteLogMessage("Token file didn't exist. Paste your token into there.",LogOutputLevel.Critical);
                 return;
             }
-            token = File.ReadAllText("token.botconfig");
+            token = File.ReadAllText(tokenPath);
 
             // First we'll want to initialize our DiscordClient.
 
