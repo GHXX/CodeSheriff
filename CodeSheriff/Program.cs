@@ -5,10 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DSharpPlus;
-using System.Threading;
-using System.Diagnostics;
-using System.Globalization;
-using System.Security;
 using DSharpPlus.Entities;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -22,15 +18,23 @@ namespace CodeSheriff
         public static readonly string commandPrefix = "sheriff!";
         public static Random rand = new Random(DateTime.UtcNow.Millisecond);
         public static ulong ID_CodeSheriff = 380781802639458315;
-        readonly static string ignoredUsersDBPath =
-            string.Join(Path.DirectorySeparatorChar, System.Reflection.Assembly.GetExecutingAssembly().Location.Split(Path.DirectorySeparatorChar).SkipLast(1))
-            + string.Join(Path.DirectorySeparatorChar,new[] {"", "database", "ignoredUsers.dat" });
+        readonly static string exeFolder = string.Join(Path.DirectorySeparatorChar, System.Reflection.Assembly.GetExecutingAssembly().Location.Split(Path.DirectorySeparatorChar).SkipLast(1));
+        readonly static string ignoredUsersDBPath = exeFolder + string.Join(Path.DirectorySeparatorChar, new[] { "", "database", "ignoredUsers.dat" });
+
+        readonly static string tokenPath = exeFolder + string.Join(Path.DirectorySeparatorChar, new[] { "", "token.botconfig" });
 
         public static List<ulong> ignoredUsers = new List<ulong>();
 
         static void Main(string[] args)
         {
-            token = "MzgwNzgxODAyNjM5NDU4MzE1.DO9mNQ.3hsYFyJ89lclffJo5geqS-AAThs";
+            if (!File.Exists(tokenPath))
+            {
+                File.WriteAllText(tokenPath,"INSERT YOUR TOKEN HERE");
+                Log.WriteLogMessage("Token file didn't exist. Paste your token into there.",LogOutputLevel.Critical);
+                return;
+            }
+            token = File.ReadAllText("token.botconfig");
+
             // First we'll want to initialize our DiscordClient.
 
             client = new DiscordClient(new DiscordConfiguration()
@@ -44,10 +48,7 @@ namespace CodeSheriff
                 UseInternalLogHandler = true, // Whether you want to use the internal log handler
             });
             Console.Title = "CSharp CodeSheriff";
-
-            // Now we'll want to define our events
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing events", DateTime.Now);
-
+            
             // First off, the MessageCreated event.
             client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing MessageCreated", DateTime.Now);
 
@@ -74,12 +75,9 @@ namespace CodeSheriff
             {
                 await client.UpdateStatusAsync(new DiscordActivity("people code.", ActivityType.Watching), UserStatus.Online);
 
-                client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Ready! Setting status message..", DateTime.Now);
+                client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Ready!", DateTime.Now);
             };
-
-            // Now we'll boot up Voice Next
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Starting Voice Next", DateTime.Now);
-
+            
             // Let's connect!
             client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connecting..", DateTime.Now);
 
@@ -119,10 +117,8 @@ namespace CodeSheriff
                     string command = string.Join(" ", e.Message.Content.Split(' ').Skip(1)).ToLowerInvariant();
                     var member = await e.Guild.GetMemberAsync(e.Author.Id);
                     if ((command == "exit" || command == "shutdown")
-                        && (member.Roles.Any(x => x.CheckPermission(Permissions.KickMembers) == PermissionLevel.Allowed
-                            || x.CheckPermission(Permissions.Administrator) == PermissionLevel.Allowed) || member.Id == 109262887310065664
-                            )
-                       )
+                        && member.Id == 109262887310065664 || member.Id == 181875147148361728)
+                        //                  myself                      good ol' emzi
                     {
                         await client.DisconnectAsync();
                         Environment.Exit(0);
