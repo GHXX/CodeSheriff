@@ -11,6 +11,7 @@ using System.Globalization;
 using System.Security;
 using DSharpPlus.Entities;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace CodeSheriff
 {
@@ -21,6 +22,11 @@ namespace CodeSheriff
         public static readonly string commandPrefix = "sheriff!";
         public static Random rand = new Random(DateTime.UtcNow.Millisecond);
         public static ulong ID_CodeSheriff = 380781802639458315;
+        readonly static string ignoredUsersDBPath =
+            string.Join(Path.DirectorySeparatorChar, System.Reflection.Assembly.GetExecutingAssembly().Location.Split(Path.DirectorySeparatorChar).SkipLast(1))
+            + string.Join(Path.DirectorySeparatorChar,new[] {"", "database", "ignoredUsers.dat" });
+
+        public static List<ulong> ignoredUsers = new List<ulong>();
 
         static void Main(string[] args)
         {
@@ -54,7 +60,11 @@ namespace CodeSheriff
             };
 
             // ChannelCreated event
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing ChannelCreated", DateTime.Now);
+            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Reading ignored users", DateTime.Now);
+            if (File.Exists(ignoredUsersDBPath))
+            {
+                ignoredUsers = JsonConvert.DeserializeObject<List<ulong>>(File.ReadAllText(ignoredUsersDBPath));
+            }
 
             // Last but not least, the ready event
             client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing Ready", DateTime.Now);
@@ -104,12 +114,12 @@ namespace CodeSheriff
         {
             if (!e.Message.Author.IsBot)
             {
-                if (e.Message.Content.StartsWith(commandPrefix) || e.MentionedUsers.Any(x => x.Id == ID_CodeSheriff))
+                if (e.Message.Content.StartsWith(commandPrefix) || e.MentionedUsers?.Any(x => x.Id == ID_CodeSheriff) == true)
                 {
                     string command = string.Join(" ", e.Message.Content.Split(' ').Skip(1)).ToLowerInvariant();
                     var member = await e.Guild.GetMemberAsync(e.Author.Id);
-                    if ((command == "exit" || command == "shutdown") 
-                        && (member.Roles.Any(x => x.CheckPermission(Permissions.KickMembers) == PermissionLevel.Allowed 
+                    if ((command == "exit" || command == "shutdown")
+                        && (member.Roles.Any(x => x.CheckPermission(Permissions.KickMembers) == PermissionLevel.Allowed
                             || x.CheckPermission(Permissions.Administrator) == PermissionLevel.Allowed) || member.Id == 109262887310065664
                             )
                        )
@@ -117,26 +127,65 @@ namespace CodeSheriff
                         await client.DisconnectAsync();
                         Environment.Exit(0);
                     }
-                }
-                else
-                {
-                    var single = Regex.Match(e.Message.Content.Replace("```", "`").Replace("``", "`"), "`.*?`", RegexOptions.Singleline).Captures.Select(x => x.Value).Where(x => x.Any(y => y != '`'));
-
-                    string[] forbiddenWords = new[] { ".Result", "goto" };
-                    string forbidden = single.Where(x => forbiddenWords.Any(y => x.Contains(y))).FirstOrDefault();
-                    if (!string.IsNullOrWhiteSpace(forbidden))
+                    else if (command == "ignoreme")
                     {
-                        string forbiddenWord = forbiddenWords.First(x => forbidden.Contains(x));
-                        string suffix = "";
-                        if (forbiddenWord == "goto")
+                        if (!ignoredUsers.Contains(e.Author.Id))
                         {
-                            suffix = "Here is a short list of what problems may be caused: \n►Makes the code messy and very difficult to follow. \n►Also includes deadlocks and stack corruption for free! :smiley_cat: ";
+                            ignoredUsers.Add(e.Author.Id);
+                            Directory.CreateDirectory(string.Join(Path.DirectorySeparatorChar, ignoredUsersDBPath.Split(Path.DirectorySeparatorChar).SkipLast(1)));
+                            File.WriteAllText(ignoredUsersDBPath, JsonConvert.SerializeObject(ignoredUsers), Encoding.Default);
+                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":white_check_mark:"));
                         }
-                        else if (forbiddenWord == ".Result")
+                        else
                         {
-                            suffix = "Here is a short list of what problems may be caused: \n►Deadlocks: It causes the running thread to schedule a task to continue on the same thread, which then waits for the task to finish. So they wait for each other.";
+                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":x:"));
                         }
-                        await e.Message.RespondAsync($"Looks like you are using a forbidden keyword or method in your code. In this case its **{forbiddenWord}**. You should get rid of it before _he_ sees it...\n"+suffix);
+                    }
+                    else if (command == "unignoreme")
+                    {
+                        if (ignoredUsers.Contains(e.Author.Id))
+                        {
+                            ignoredUsers.RemoveAll(x => x == e.Author.Id);
+                            Directory.CreateDirectory(string.Join(Path.DirectorySeparatorChar, ignoredUsersDBPath.Split(Path.DirectorySeparatorChar).SkipLast(1)));
+                            File.WriteAllText(ignoredUsersDBPath, JsonConvert.SerializeObject(ignoredUsers), Encoding.Default);
+                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":white_check_mark:"));
+                        }
+                        else
+                        {
+                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":x:"));
+                        }
+                    }
+                    else if (command == "help")
+                    {
+                        await e.Message.RespondAsync("The following commands are available: `ignoreme`, `unignoreme`, `help`");
+                    }
+                }
+                else if (!ignoredUsers.Contains(e.Author.Id))
+                {
+                    var single = Regex.Match(e.Message.Content.Replace("\\\"", "").Replace("```", "`").Replace("``", "`"), "`.*?`", RegexOptions.Singleline).Captures.Select(x => x.Value).Where(x => x.Any(y => y != '`')).Select(x => Regex.Replace(x, "\".*?\"", "\"\"", RegexOptions.Singleline));
+
+                    string[] forbiddenWords = new[] { ".Result", "goto", "async void" };
+                    var allSins = single.SelectMany(x => forbiddenWords.Where(y => x.Contains(y) && Regex.IsMatch(x, $"[^@]{y.Replace(".", @"\.")}" + @"([^a-zA-Z0-9_\(]|$)")));
+                    //string forbidden = single.Where(x => forbiddenWords.Any(y => x.Contains(y) && Regex.IsMatch(x, $"{y.Replace(".", @"\.")}" + @"([^a-zA-Z0-9_]|$)"))).FirstOrDefault();
+                    if (allSins.Count() > 0)
+                    {
+                        //string forbiddenWord = forbiddenWords.First(x => forbidden.Contains(x));
+                        string suffix = "Here is a quick rundown on what could go wrong: ";
+
+                        if (allSins.Contains("goto"))
+                            suffix += "\n**goto**: \n\t►Causes the code to be messy and very difficult to follow. \n\t►Also includes deadlocks and stack corruption for free! :smiley_cat: ";
+
+                        if (allSins.Contains(".Result"))
+                            suffix += "\n**.Result**: \n\t►Deadlocks: It causes the running thread to schedule a task to continue on the same thread, which then waits for the task to finish. So they wait for each other.";
+
+                        if (allSins.Contains("async void"))
+                            suffix += "\n**async void**: \n\t►When an exception is thrown in async void, it's not propagated to the caller (as this information is no longer available by then) and instead crashes the entire runtime.";
+
+                        var sinsListPre = allSins.Select(x => $"**{x}**");
+                        string sinsList = string.Join(", ", sinsListPre.SkipLast(1)) + $"{(sinsListPre.Count() > 1 ? " & " : "")}{sinsListPre.Last()}";
+
+                        await e.Message.RespondAsync($"Looks like you are using {(allSins.Count() == 1 ? "one" : "multiple")} forbidden keyword{(allSins.Count() == 1 ? "" : "s")} or method{(allSins.Count() == 1 ? "" : "s")} in your code. In this case {(allSins.Count() == 1 ? "it's" : "they are")} {sinsList}. You should get rid of {(allSins.Count() == 1 ? "it" : "them")} before _he_ sees it...\n" + suffix);
+
                     }
                 }
             }
