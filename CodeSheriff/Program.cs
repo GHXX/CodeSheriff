@@ -92,12 +92,12 @@ namespace CodeSheriff
             var ignoreduser = db.IgnoredUsers.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.IgnoredUserId == e.Message.Author.Id);
             //If so bail out
             if (ignoreduser != null) return;
-            if (!new Regex("(?:```)").IsMatch(msg)) return;
+            if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
             var detectedWords = new List<InvaildWord>();
             foreach(var word in db.InvaildWords)
             {
                 if (word.Keyword.Contains(".")) word.Keyword.Replace(".", @"\.");
-                if (new Regex($@"[^""]({word.Keyword})[^""]").IsMatch(msg))
+                if (new Regex($@"(([^\/\/]|[^\/*][^""])({word.Keyword})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(word);
              }
