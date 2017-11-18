@@ -4,9 +4,9 @@ using System.Text;
 
 namespace CodeSheriff
 {
-    class Log
+    public class Log
     {
-        public static void WriteLogMessage(string message, LogOutputLevel level)
+        public void WriteLogMessage(string message, LogOutputLevel level)
         {
 #if DEBUG
             if (level == LogOutputLevel.Debug)
@@ -15,31 +15,31 @@ namespace CodeSheriff
                 return;
             }
 #endif
+            string dateString = DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             switch (level)
             {
                 case LogOutputLevel.Info:
-                    WriteColor($"[{DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz")}] [Log] [Info] {message}", ConsoleColor.White);
+                    WriteColor($"[{dateString}] [Log] [Info] {message}", ConsoleColor.White);
                     break;
                 case LogOutputLevel.Warning:
-                    WriteColor($"[{DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz")}] [Log] [Warning] {message}", ConsoleColor.Yellow);
+                    WriteColor($"[{dateString}] [Log] [Warning] {message}", ConsoleColor.Yellow);
                     break;
                 case LogOutputLevel.Error:
-                    WriteColor($"[{DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz")}] [Log] [Error] {message}", ConsoleColor.Red);
+                    WriteColor($"[{dateString}] [Log] [Error] {message}", ConsoleColor.Red);
                     break;
                 case LogOutputLevel.Critical:
-                    WriteColor($"[{DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz")}] [Log] [Critical] {message}", ConsoleColor.Red);
+                    WriteColor($"[{dateString}] [Log] [Critical] {message}", ConsoleColor.Red);
                     break;
                 case LogOutputLevel.Good:
-                    WriteColor($"[{DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz")}] [Log] [Good] {message}", ConsoleColor.Green);
+                    WriteColor($"[{dateString}] [Log] [Good] {message}", ConsoleColor.Green);
                     break;
                 default:
                     break;
             }
-
         }
 
-        private static void WriteColor(string message, ConsoleColor color)
+        private void WriteColor(string message, ConsoleColor color)
         {
             var oldColor = Console.ForegroundColor;
             Console.ForegroundColor = color;
@@ -48,8 +48,7 @@ namespace CodeSheriff
         }
     }
 
-
-    enum LogOutputLevel
+    public enum LogOutputLevel
     {
         Debug = 0,
         Info = 1,
