@@ -17,12 +17,13 @@ namespace CodeSheriff
         public async Task IgnoreMeAsync(CommandContext ctx)
         {
             var db = ctx.Dependencies.GetDependency<Database>();
-            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id);
+            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored == null)
             {
                 await db.IgnoredUsers.AddAsync(new IgnoredUsers()
                 {
-                    IgnoredUserId = ctx.Member.Id
+                    IgnoredUserId = ctx.Member.Id,
+                    GuildId = ctx.Guild.Id
                 });
                 await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
@@ -34,7 +35,7 @@ namespace CodeSheriff
         public async Task UnIgnoreMeAsync(CommandContext ctx)
         {
             var db = ctx.Dependencies.GetDependency<Database>();
-            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id);
+            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored != null)
             {
                 db.IgnoredUsers.Remove(ignored);
@@ -48,11 +49,12 @@ namespace CodeSheriff
         public async Task AddAsync(CommandContext ctx, string keyword, params string[] reasons)
         {
             var db = ctx.Dependencies.GetDependency<Database>();
-            var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword);
+            var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword && x.GuildId == ctx.Guild.Id);
             if(word == null)
             {
                 await db.InvaildWords.AddAsync(new InvaildWord()
                 {
+                    GuildId = ctx.Guild.Id,
                     Keyword = keyword,
                     Reasons = reasons.ToList()
                 });
@@ -66,7 +68,7 @@ namespace CodeSheriff
         public async Task RemoveAsync(CommandContext ctx, string keyword)
         {
             var db = ctx.Dependencies.GetDependency<Database>();
-            var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword);
+            var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword && x.GuildId == ctx.Guild.Id);
             if (word != null)
             {
                 db.InvaildWords.Remove(word);
@@ -76,7 +78,7 @@ namespace CodeSheriff
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
         }
 
-        [Command("shutdown"), RequireOwnerOrMod, Description("Shuts down the bot"), Hidden]
+        [Command("shutdown"), RequireOwner, Description("Shuts down the bot"), Hidden]
         public async Task ShutdownAsync(CommandContext ctx)
         {
             //Make the bot appear offline

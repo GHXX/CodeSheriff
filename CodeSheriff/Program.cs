@@ -87,8 +87,12 @@ namespace CodeSheriff
             if (e.Message.Author.IsBot) return;
             var msg = e.Message.Content;
             //If the message does not contain a code block, return
-            if (!new Regex("(?:```)").IsMatch(msg)) return;
             var db = _commands.Dependencies.GetDependency<Database>();
+            //Check that the author is being ignored
+            var ignoreduser = db.IgnoredUsers.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.IgnoredUserId == e.Message.Author.Id);
+            //If so bail out
+            if (ignoreduser != null) return;
+            if (!new Regex("(?:```)").IsMatch(msg)) return;
             var detectedWords = new List<InvaildWord>();
             foreach(var word in db.InvaildWords)
             {

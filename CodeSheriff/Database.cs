@@ -21,13 +21,16 @@ namespace CodeSheriff
     public class IgnoredUsers
     {
         [Key]
+        public int EntryId { get; set; }
         public ulong IgnoredUserId { get; set; }
+        public ulong GuildId { get; set; }
     }
 
     public class InvaildWord
     {
         [Key]
-        public int EntryID { get; set; }
+        public int EntryId { get; set; }
+        public ulong GuildId { get; set; }
         public string Keyword { get; set; }
         [NotMapped]
         public List<string> Reasons { get; set; }
