@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,10 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;   
 using DSharpPlus.CommandsNext;
-using Newtonsoft.Json;
-using Microsoft.Extensions.DependencyInjection;
+using DSharpPlus.EventArgs;
 
 namespace CodeSheriff
 {
@@ -82,7 +81,7 @@ namespace CodeSheriff
             await Task.Delay(-1);
         }
 
-        private async Task _client_MessageCreatedAsync(DSharpPlus.EventArgs.MessageCreateEventArgs e)
+        private async Task _client_MessageCreatedAsync(MessageCreateEventArgs e)
         {
             //If it's a bot return
             if (e.Message.Author.IsBot) return;
