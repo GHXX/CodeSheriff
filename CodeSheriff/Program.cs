@@ -104,6 +104,9 @@ namespace CodeSheriff
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(word);
              }
+            //If no words are detected, bail
+            if (detectedWords.Count == 0) return;
+
             var messageBuilder = new StringBuilder();
             var reasonBuilder = new StringBuilder();
             messageBuilder.Append("Looks like you are using one or more forbidden keywords in your code.");
@@ -115,7 +118,7 @@ namespace CodeSheriff
             {
                 //Build the reasons
                 reasonBuilder.AppendLine($"__{word.Keyword}__");
-                reasonBuilder.AppendLine(string.Join("\n", word.Reasons.Select(x => x)));
+                reasonBuilder.AppendLine(string.Join("\n", word.Reasons.Split(',').Select(x => x)));
                 reasonBuilder.AppendLine("");
             }
             //Append the reasons to the overall message

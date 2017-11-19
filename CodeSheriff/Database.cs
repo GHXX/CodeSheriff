@@ -4,6 +4,9 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CodeSheriff
 {
@@ -32,7 +35,6 @@ namespace CodeSheriff
         public int EntryId { get; set; }
         public ulong GuildId { get; set; }
         public string Keyword { get; set; }
-        [NotMapped]
-        public List<string> Reasons { get; set; }
+        public string Reasons { get; set; }
     }
 }

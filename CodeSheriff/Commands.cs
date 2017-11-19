@@ -56,7 +56,7 @@ namespace CodeSheriff
                 {
                     GuildId = ctx.Guild.Id,
                     Keyword = keyword,
-                    Reasons = reasons.ToList()
+                    Reasons = string.Join(",", reasons.Select(x => x))
                 });
                 await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
