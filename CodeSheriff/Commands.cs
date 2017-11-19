@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using System.Linq;
 using DSharpPlus.Entities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeSheriff
 {
@@ -13,7 +14,7 @@ namespace CodeSheriff
         [Command("ignoreme"), Description("This command tells the bot to ingore your code")]
         public async Task IgnoreMeAsync(CommandContext ctx)
         {
-            var db = ctx.Dependencies.GetDependency<Database>();
+            var db = ctx.Services.GetRequiredService<Database>();
             var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored == null)
             {
@@ -31,7 +32,7 @@ namespace CodeSheriff
         [Command("unignoreme"), Description("This command tells the bot to keep judging your code")]
         public async Task UnIgnoreMeAsync(CommandContext ctx)
         {
-            var db = ctx.Dependencies.GetDependency<Database>();
+            var db = ctx.Services.GetRequiredService<Database>();
             var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored != null)
             {
@@ -45,7 +46,7 @@ namespace CodeSheriff
         [Command("add"), RequireOwnerOrMod, Description("Adds a keyword to the database")]
         public async Task AddAsync(CommandContext ctx, string keyword, params string[] reasons)
         {
-            var db = ctx.Dependencies.GetDependency<Database>();
+            var db = ctx.Services.GetRequiredService<Database>();
             var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword && x.GuildId == ctx.Guild.Id);
             if(word == null)
             {
@@ -64,7 +65,7 @@ namespace CodeSheriff
         [Command("remove"), RequireOwnerOrMod, Description("Removes a keyword from the database")]
         public async Task RemoveAsync(CommandContext ctx, string keyword)
         {
-            var db = ctx.Dependencies.GetDependency<Database>();
+            var db = ctx.Services.GetRequiredService<Database>();
             var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword && x.GuildId == ctx.Guild.Id);
             if (word != null)
             {
@@ -79,7 +80,7 @@ namespace CodeSheriff
         public async Task ShutdownAsync(CommandContext ctx)
         {
             //Make the bot appear offline
-            await ctx.Client.UpdateStatusAsync(user_status: UserStatus.Invisible);
+            await ctx.Client.UpdateStatusAsync(userStatus: UserStatus.Invisible);
             await ctx.Client.DisconnectAsync();
             Console.WriteLine("Shutting down...");
         }
@@ -87,7 +88,7 @@ namespace CodeSheriff
 
     public class RequireOwnerOrMod : CheckBaseAttribute
     {
-        public override Task<bool> CanExecute(CommandContext ctx, bool help)
+        public override Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)
         {
             return Task.Run(() =>
             {

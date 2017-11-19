@@ -17,7 +17,9 @@ namespace CodeSheriff
     {
         public Random rand = new Random();
         private DiscordClient _client { get; set; }
+
         private CommandsNextExtension _commands { get; set; }
+
         private Log _log = new Log();
 
         //Instead of your mess, make it an async main so we can run everything async
@@ -31,8 +33,10 @@ namespace CodeSheriff
         {
             //Create the Services for the bot
             var deps = new ServiceCollection()
-                .AddInstance(new Database())
-                .Build();
+
+                .AddSingleton(new Database())
+                .BuildServiceProvider();
+
             //We'll want to initialize our DiscordClient.
             _client = new DiscordClient(new DiscordConfiguration()
             {
@@ -47,7 +51,7 @@ namespace CodeSheriff
             {
                 StringPrefix = "sheriff! ", //Bot prefix
                 CaseSensitive = false, //None case sensitive commands
-                Dependencies = deps, //Set the dependencies
+                Services = deps, //Set the dependencies
                 EnableDms = false, //Disable commands in dms
                 EnableDefaultHelp = true, //Enable the default help
                 EnableMentionPrefix = true //Allow the bot mention to be used as a prefix
@@ -72,6 +76,7 @@ namespace CodeSheriff
             _client.Ready += async (e) =>
             {
                 //I had to reinstall dsp and forgot what version you were using so just went to 3.2.3 stable. Feel free to edit - Li
+
                 await _client.UpdateStatusAsync(new DiscordActivity($"people code on {e.Client.Guilds.Count}servers.", ActivityType.Watching), UserStatus.Online);
                 _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Ready!", DateTime.Now);
             };
@@ -91,7 +96,7 @@ namespace CodeSheriff
             if (e.Message.Author.IsBot) return;
             var msg = e.Message.Content;
             //If the message does not contain a code block, return
-            var db = _commands.Dependencies.GetDependency<Database>();
+            var db = _commands.Services.GetRequiredService<Database>();
             //Check that the author is being ignored
             var ignoreduser = db.IgnoredUsers.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.IgnoredUserId == e.Message.Author.Id);
             //If so bail out
