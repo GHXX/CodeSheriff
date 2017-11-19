@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using System.Text.RegularExpressions;   
+using System.Text.RegularExpressions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.EventArgs;
 
@@ -16,7 +16,7 @@ namespace CodeSheriff
     {
         public Random rand = new Random();
         private DiscordClient _client { get; set; }
-        private CommandsNextModule _commands {get; set;}
+        private CommandsNextModule _commands { get; set; }
         private Log _log = new Log();
 
         //Instead of your mess, make it an async main so we can run everything async
@@ -71,7 +71,7 @@ namespace CodeSheriff
             _client.Ready += async (e) =>
             {
                 //I had to reinstall dsp and forgot what version you were using so just went to 3.2.3 stable. Feel free to edit - Li
-                await _client.UpdateStatusAsync(new DiscordGame("with code."), UserStatus.Online);
+                await _client.UpdateStatusAsync(new DiscordActivity($"people code on {e.Client.Guilds.Count}servers.", ActivityType.Watching), UserStatus.Online);
                 _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Ready!", DateTime.Now);
             };
 
@@ -97,13 +97,13 @@ namespace CodeSheriff
             if (ignoreduser != null) return;
             if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
             var detectedWords = new List<InvaildWord>();
-            foreach(var word in db.InvaildWords)
+            foreach (var word in db.InvaildWords)
             {
                 if (word.Keyword.Contains(".")) word.Keyword.Replace(".", @"\.");
                 if (new Regex($@"(([^\/\/]|[^\/*][^""])({word.Keyword})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(word);
-             }
+            }
             //If no words are detected, bail
             if (detectedWords.Count == 0) return;
 
