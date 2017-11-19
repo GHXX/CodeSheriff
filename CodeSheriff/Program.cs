@@ -9,6 +9,7 @@ using DSharpPlus.Entities;
 using System.Text.RegularExpressions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.EventArgs;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeSheriff
 {
@@ -16,7 +17,7 @@ namespace CodeSheriff
     {
         public Random rand = new Random();
         private DiscordClient _client { get; set; }
-        private CommandsNextModule _commands { get; set; }
+        private CommandsNextExtension _commands { get; set; }
         private Log _log = new Log();
 
         //Instead of your mess, make it an async main so we can run everything async
@@ -29,7 +30,7 @@ namespace CodeSheriff
         public async Task RunAsync()
         {
             //Create the Services for the bot
-            var deps = new DependencyCollectionBuilder()
+            var deps = new ServiceCollection()
                 .AddInstance(new Database())
                 .Build();
             //We'll want to initialize our DiscordClient.
