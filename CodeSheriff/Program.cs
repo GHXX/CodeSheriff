@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,191 +6,125 @@ using System.Text;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json;
+using System.Text.RegularExpressions;   
+using DSharpPlus.CommandsNext;
+using DSharpPlus.EventArgs;
 
 namespace CodeSheriff
 {
-    class Program
+    public class Program
     {
-        public static DiscordClient client;
-        public static string token;
-        public static readonly string commandPrefix = "sheriff!";
-        public static Random rand = new Random(DateTime.UtcNow.Millisecond);
-        public static ulong ID_CodeSheriff = 380781802639458315;
-        readonly static string exeFolder = string.Join(Path.DirectorySeparatorChar, System.Reflection.Assembly.GetExecutingAssembly().Location.Split(Path.DirectorySeparatorChar).SkipLast(1));
-        readonly static string ignoredUsersDBPath = exeFolder + string.Join(Path.DirectorySeparatorChar, new[] { "", "database", "ignoredUsers.dat" });
+        public Random rand = new Random();
+        private DiscordClient _client { get; set; }
+        private CommandsNextModule _commands {get; set;}
+        private Log _log = new Log();
 
-        readonly static string tokenPath = exeFolder + string.Join(Path.DirectorySeparatorChar, new[] { "", "token.botconfig" });
-
-        public static List<ulong> ignoredUsers = new List<ulong>();
-
-        static void Main(string[] args)
+        //Instead of your mess, make it an async main so we can run everything async
+        public static void Main(string[] args)
         {
-            if (!File.Exists(tokenPath))
-            {
-                File.WriteAllText(tokenPath,"INSERT YOUR TOKEN HERE");
-                Log.WriteLogMessage("Token file didn't exist. Paste your token into there.",LogOutputLevel.Critical);
-                return;
-            }
-            token = File.ReadAllText(tokenPath);
+            Console.Title = "CodeSheriff";
+            new Program().RunAsync().GetAwaiter().GetResult();
+        }
 
-            // First we'll want to initialize our DiscordClient.
-
-            client = new DiscordClient(new DiscordConfiguration()
+        public async Task RunAsync()
+        {
+            //Create the Services for the bot
+            var deps = new DependencyCollectionBuilder()
+                .AddInstance(new Database())
+                .Build();
+            //We'll want to initialize our DiscordClient.
+            _client = new DiscordClient(new DiscordConfiguration()
             {
-                AutoReconnect = true, // Whether you want DSharpPlus to automatically reconnect                
-                //DiscordBranch =  Branch.Stable, // API branch you want to use. Stable is recommended!
+                AutoReconnect = true, // Automatically reconnect on disconnect        
                 LargeThreshold = 250, // Total number of members where the gateway will stop sending offline members in the guild member list
                 LogLevel = LogLevel.Info, // Minimum log level you want to use
-                Token = token, // Your token
-                TokenType = TokenType.Bot, // Your token type. Most likely "Bot"
-                UseInternalLogHandler = true, // Whether you want to use the internal log handler
+                Token = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Token.txt")), // Token
+                TokenType = TokenType.Bot, // Token type.
+                UseInternalLogHandler = true, // Use the internal log handler
             });
-            Console.Title = "CSharp CodeSheriff";
-            
+            _commands = _client.UseCommandsNext(new CommandsNextConfiguration()
+            {
+                StringPrefix = "sheriff! ", //Bot prefix
+                CaseSensitive = false, //None case sensitive commands
+                Dependencies = deps, //Set the dependencies
+                EnableDms = false, //Disable commands in dms
+                EnableDefaultHelp = true, //Enable the default help
+                EnableMentionPrefix = true //Allow the bot mention to be used as a prefix
+            });
+
             // First off, the MessageCreated event.
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing MessageCreated", DateTime.Now);
+            _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing MessageCreated", DateTime.Now);
+            _client.MessageCreated += _client_MessageCreatedAsync;
 
-            client.MessageCreated += Client_MessageCreatedAsync;
+            //Register commands
+            _commands.RegisterCommands<Commands>();
 
-            client.ClientErrored += async (e) =>
+            // Client errored event
+            _client.ClientErrored += (e) =>
             {
-                await Task.Yield();
-                Log.WriteLogMessage($"[Client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogOutputLevel.Error);
+                _log.WriteLogMessage($"[_client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogOutputLevel.Error);
+                return Task.CompletedTask;
             };
 
-            // ChannelCreated event
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Reading ignored users", DateTime.Now);
-            if (File.Exists(ignoredUsersDBPath))
+            // The ready event
+            _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing Ready", DateTime.Now);
+            _client.Ready += async (e) =>
             {
-                ignoredUsers = JsonConvert.DeserializeObject<List<ulong>>(File.ReadAllText(ignoredUsersDBPath));
-            }
-
-            // Last but not least, the ready event
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing Ready", DateTime.Now);
-
-
-            client.Ready += async (e) =>
-            {
-                await client.UpdateStatusAsync(new DiscordActivity("people code.", ActivityType.Watching), UserStatus.Online);
-
-                client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Ready!", DateTime.Now);
+                //I had to reinstall dsp and forgot what version you were using so just went to 3.2.3 stable. Feel free to edit - Li
+                await _client.UpdateStatusAsync(new DiscordGame("with code."), UserStatus.Online);
+                _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Ready!", DateTime.Now);
             };
-            
+
             // Let's connect!
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connecting..", DateTime.Now);
+            _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connecting..", DateTime.Now);
+            await _client.ConnectAsync();
+            _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connected..", DateTime.Now);
 
-            client.ConnectAsync();
-            // Make sure to not automatically close down
-            string concmd = "";
-
-            client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connected..", DateTime.Now);
-
-            while (true)
-            {
-                concmd = Console.ReadLine();
-                try
-                {
-                    switch (concmd.ToLower())
-                    {
-                        case "exit": Shutdown(); return;
-                        case "reconnect": client.ReconnectAsync(); break;
-
-                        default: Console.WriteLine("Unknown command."); break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteLogMessage("ERROR: " + ex.ToString(), LogOutputLevel.Error);
-                    //throw ex;
-                }
-            }
+            //Keep the task alive
+            await Task.Delay(-1);
         }
 
-        private static async Task Client_MessageCreatedAsync(DSharpPlus.EventArgs.MessageCreateEventArgs e)
+        private async Task _client_MessageCreatedAsync(MessageCreateEventArgs e)
         {
-            if (!e.Message.Author.IsBot)
+            //If it's a bot return
+            if (e.Message.Author.IsBot) return;
+            var msg = e.Message.Content;
+            //If the message does not contain a code block, return
+            var db = _commands.Dependencies.GetDependency<Database>();
+            //Check that the author is being ignored
+            var ignoreduser = db.IgnoredUsers.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.IgnoredUserId == e.Message.Author.Id);
+            //If so bail out
+            if (ignoreduser != null) return;
+            if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
+            var detectedWords = new List<InvaildWord>();
+            foreach(var word in db.InvaildWords)
             {
-                if (e.Message.Content.StartsWith(commandPrefix) || e.MentionedUsers?.Any(x => x.Id == ID_CodeSheriff) == true)
-                {
-                    string command = string.Join(" ", e.Message.Content.Split(' ').Skip(1)).ToLowerInvariant();
-                    var member = await e.Guild.GetMemberAsync(e.Author.Id);
-                    if ((command == "exit" || command == "shutdown")
-                        && member.Id == 109262887310065664 || member.Id == 181875147148361728)
-                        //                  myself                      good ol' emzi
-                    {
-                        await client.DisconnectAsync();
-                        Environment.Exit(0);
-                    }
-                    else if (command == "ignoreme")
-                    {
-                        if (!ignoredUsers.Contains(e.Author.Id))
-                        {
-                            ignoredUsers.Add(e.Author.Id);
-                            Directory.CreateDirectory(string.Join(Path.DirectorySeparatorChar, ignoredUsersDBPath.Split(Path.DirectorySeparatorChar).SkipLast(1)));
-                            File.WriteAllText(ignoredUsersDBPath, JsonConvert.SerializeObject(ignoredUsers), Encoding.Default);
-                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":white_check_mark:"));
-                        }
-                        else
-                        {
-                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":x:"));
-                        }
-                    }
-                    else if (command == "unignoreme")
-                    {
-                        if (ignoredUsers.Contains(e.Author.Id))
-                        {
-                            ignoredUsers.RemoveAll(x => x == e.Author.Id);
-                            Directory.CreateDirectory(string.Join(Path.DirectorySeparatorChar, ignoredUsersDBPath.Split(Path.DirectorySeparatorChar).SkipLast(1)));
-                            File.WriteAllText(ignoredUsersDBPath, JsonConvert.SerializeObject(ignoredUsers), Encoding.Default);
-                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":white_check_mark:"));
-                        }
-                        else
-                        {
-                            await e.Message.CreateReactionAsync(DiscordEmoji.FromName(e.Client, ":x:"));
-                        }
-                    }
-                    else if (command == "help")
-                    {
-                        await e.Message.RespondAsync("The following commands are available: `ignoreme`, `unignoreme`, `help`");
-                    }
-                }
-                else if (!ignoredUsers.Contains(e.Author.Id))
-                {
-                    var single = Regex.Match(e.Message.Content.Replace("\\\"", "").Replace("```", "`").Replace("``", "`"), "`.*?`", RegexOptions.Singleline).Captures.Select(x => x.Value).Where(x => x.Any(y => y != '`')).Select(x => Regex.Replace(x, "\".*?\"", "\"\"", RegexOptions.Singleline));
+                if (word.Keyword.Contains(".")) word.Keyword.Replace(".", @"\.");
+                if (new Regex($@"(([^\/\/]|[^\/*][^""])({word.Keyword})([^""]))").IsMatch(msg))
+                    //If an invalid word is found, add it to the list
+                    detectedWords.Add(word);
+             }
+            //If no words are detected, bail
+            if (detectedWords.Count == 0) return;
 
-                    string[] forbiddenWords = new[] { ".Result", "goto", "async void" };
-                    var allSins = single.SelectMany(x => forbiddenWords.Where(y => x.Contains(y) && Regex.IsMatch(x, $"[^@]{y.Replace(".", @"\.")}" + @"([^a-zA-Z0-9_\(]|$)")));
-                    //string forbidden = single.Where(x => forbiddenWords.Any(y => x.Contains(y) && Regex.IsMatch(x, $"{y.Replace(".", @"\.")}" + @"([^a-zA-Z0-9_]|$)"))).FirstOrDefault();
-                    if (allSins.Count() > 0)
-                    {
-                        //string forbiddenWord = forbiddenWords.First(x => forbidden.Contains(x));
-                        string suffix = "Here is a quick rundown on what could go wrong: ";
-
-                        if (allSins.Contains("goto"))
-                            suffix += "\n**goto**: \n\t►Causes the code to be messy and very difficult to follow. \n\t►Also includes deadlocks and stack corruption for free! :smiley_cat: ";
-
-                        if (allSins.Contains(".Result"))
-                            suffix += "\n**.Result**: \n\t►Deadlocks: It causes the running thread to schedule a task to continue on the same thread, which then waits for the task to finish. So they wait for each other.";
-
-                        if (allSins.Contains("async void"))
-                            suffix += "\n**async void**: \n\t►When an exception is thrown in async void, it's not propagated to the caller (as this information is no longer available by then) and instead crashes the entire runtime.";
-
-                        var sinsListPre = allSins.Select(x => $"**{x}**");
-                        string sinsList = string.Join(", ", sinsListPre.SkipLast(1)) + $"{(sinsListPre.Count() > 1 ? " & " : "")}{sinsListPre.Last()}";
-
-                        await e.Message.RespondAsync($"Looks like you are using {(allSins.Count() == 1 ? "one" : "multiple")} forbidden keyword{(allSins.Count() == 1 ? "" : "s")} or method{(allSins.Count() == 1 ? "" : "s")} in your code. In this case {(allSins.Count() == 1 ? "it's" : "they are")} {sinsList}. You should get rid of {(allSins.Count() == 1 ? "it" : "them")} before _he_ sees it...\n" + suffix);
-
-                    }
-                }
+            var messageBuilder = new StringBuilder();
+            var reasonBuilder = new StringBuilder();
+            messageBuilder.Append("Looks like you are using one or more forbidden keywords in your code.");
+            //Just grammatical stuff
+            if (detectedWords.Count > 1) messageBuilder.AppendLine($" In this case they're: **{string.Join(", ", detectedWords.Select(x => x.Keyword))}**.\n");
+            else messageBuilder.AppendLine($"In this case its: **{detectedWords.First().Keyword}**.\n");
+            messageBuilder.AppendLine("Here is a short list of what problems may be caused:");
+            foreach (var word in detectedWords)
+            {
+                //Build the reasons
+                reasonBuilder.AppendLine($"__{word.Keyword}__");
+                reasonBuilder.AppendLine(string.Join("\n", word.Reasons.Split(',').Select(x => x)));
+                reasonBuilder.AppendLine("");
             }
-        }
-
-        internal static void Shutdown()
-        {
-            client.DisconnectAsync();
-            Console.WriteLine("Shutting down. This may take up to 30 seconds.");
+            //Append the reasons to the overall message
+            messageBuilder.AppendLine(reasonBuilder.ToString());
+            //Send that message to the channel
+            await e.Channel.SendMessageAsync(messageBuilder.ToString());
         }
     }
 }
