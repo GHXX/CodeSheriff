@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System;
 using DSharpPlus;
 using DSharpPlus.CommandsNext.Attributes;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using System.Linq;
-using System.IO;
 using DSharpPlus.Entities;
 
 namespace CodeSheriff
