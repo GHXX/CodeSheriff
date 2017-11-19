@@ -56,6 +56,9 @@ namespace CodeSheriff
             _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing MessageCreated", DateTime.Now);
             _client.MessageCreated += _client_MessageCreatedAsync;
 
+            //Register commands
+            _commands.RegisterCommands<Commands>();
+
             // Client errored event
             _client.ClientErrored += (e) =>
             {
