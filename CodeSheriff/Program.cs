@@ -85,7 +85,8 @@ namespace CodeSheriff
             _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connected..", DateTime.Now);
 
             var helper = _commands.Services.GetRequiredService<JsonHelper>();
-            var _data = helper.GetData();
+            var serviceClass = _commands.Services.GetRequiredService<ServiceClass>();
+            serviceClass.Data = helper.GetData();
             //Keep the task alive
             await Task.Delay(-1);
         }
