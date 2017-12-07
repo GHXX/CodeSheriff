@@ -6,6 +6,7 @@ using DSharpPlus.CommandsNext;
 using System.Linq;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.DependencyInjection;
+using CodeSheriff.Helper;
 
 namespace CodeSheriff
 {
@@ -14,16 +15,17 @@ namespace CodeSheriff
         [Command("ignoreme"), Description("This command tells the bot to ingore your code")]
         public async Task IgnoreMeAsync(CommandContext ctx)
         {
-            var db = ctx.Services.GetRequiredService<Database>();
-            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
+            var helper = ctx.Services.GetRequiredService<JsonHelper>();
+            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored == null)
             {
-                await db.IgnoredUsers.AddAsync(new IgnoredUsers()
+                serviceClass.Data.IgnoredUsers.Add(new IgnoredUser()
                 {
-                    IgnoredUserId = ctx.Member.Id,
+                    UserId = ctx.Member.Id,
                     GuildId = ctx.Guild.Id
                 });
-                await db.SaveChangesAsync();
+                helper.SaveData(serviceClass.Data);
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
@@ -32,12 +34,13 @@ namespace CodeSheriff
         [Command("unignoreme"), Description("This command tells the bot to keep judging your code")]
         public async Task UnIgnoreMeAsync(CommandContext ctx)
         {
-            var db = ctx.Services.GetRequiredService<Database>();
-            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.IgnoredUserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
+            var helper = ctx.Services.GetRequiredService<JsonHelper>();
+            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored != null)
             {
-                db.IgnoredUsers.Remove(ignored);
-                await db.SaveChangesAsync();
+                serviceClass.Data.IgnoredUsers.Remove(ignored);
+                helper.SaveData(serviceClass.Data);
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
@@ -46,18 +49,20 @@ namespace CodeSheriff
         [Command("add"), RequireOwnerOrMod, Description("Adds a keyword to the database. Use ■ (ALT+254) instead of spaces.")]  //TODO allow pipe symbol for separation
         public async Task AddAsync(CommandContext ctx, string _keyword, params string[] reasons)
         {
-            string keyword = _keyword.Replace("■","");
-            var db = ctx.Services.GetRequiredService<Database>();
-            var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword && x.GuildId == ctx.Guild.Id);
+          string keyword = _keyword.Replace("■","");
+            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
+            var helper = ctx.Services.GetRequiredService<JsonHelper>();
+            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
+          
             if(word == null)
             {
-                await db.InvaildWords.AddAsync(new InvaildWord()
+                serviceClass.Data.FlaggedWords.Add(new FlaggedWord()
                 {
                     GuildId = ctx.Guild.Id,
-                    Keyword = keyword,
-                    Reasons = string.Join(",", reasons.Select(x => x))
+                    Word = keyword,
+                    Reasons = (string[])reasons.Select(x => x)
                 });
-                await db.SaveChangesAsync();
+                helper.SaveData(serviceClass.Data);
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
@@ -66,12 +71,13 @@ namespace CodeSheriff
         [Command("remove"), RequireOwnerOrMod, Description("Removes a keyword from the database")]
         public async Task RemoveAsync(CommandContext ctx, string keyword)
         {
-            var db = ctx.Services.GetRequiredService<Database>();
-            var word = db.InvaildWords.FirstOrDefault(x => x.Keyword == keyword && x.GuildId == ctx.Guild.Id);
+            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
+            var helper = ctx.Services.GetRequiredService<JsonHelper>();
+            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
             if (word != null)
             {
-                db.InvaildWords.Remove(word);
-                await db.SaveChangesAsync();
+                serviceClass.Data.FlaggedWords.Remove(word);
+                helper.SaveData(serviceClass.Data);
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));

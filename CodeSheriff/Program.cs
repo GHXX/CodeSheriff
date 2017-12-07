@@ -10,12 +10,12 @@ using System.Text.RegularExpressions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.EventArgs;
 using Microsoft.Extensions.DependencyInjection;
+using CodeSheriff.Helper;
 
 namespace CodeSheriff
 {
     public class Program
     {
-        public Random rand = new Random();
         private DiscordClient _client { get; set; }
 
         private CommandsNextExtension _commands { get; set; }
@@ -33,10 +33,8 @@ namespace CodeSheriff
         {
             //Create the Services for the bot
             var deps = new ServiceCollection()
-
-                .AddSingleton(new Database())
+                .AddSingleton(new JsonHelper())
                 .BuildServiceProvider();
-
             //We'll want to initialize our DiscordClient.
             _client = new DiscordClient(new DiscordConfiguration()
             {
@@ -67,7 +65,7 @@ namespace CodeSheriff
             // Client errored event
             _client.ClientErrored += (e) =>
             {
-                _log.WriteLogMessage($"[_client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogOutputLevel.Error);
+                _log.WriteLogMessage($"[_client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogLevel.Error);
                 return Task.CompletedTask;
             };
 
@@ -86,29 +84,32 @@ namespace CodeSheriff
             await _client.ConnectAsync();
             _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connected..", DateTime.Now);
 
+            var helper = _commands.Services.GetRequiredService<JsonHelper>();
+            var serviceClass = _commands.Services.GetRequiredService<ServiceClass>();
+            serviceClass.Data = helper.GetData();
             //Keep the task alive
             await Task.Delay(-1);
         }
 
         private async Task _client_MessageCreatedAsync(MessageCreateEventArgs e)
         {
+            var serviceClass = _commands.Services.GetRequiredService<ServiceClass>();
             //If it's a bot return
             if (e.Message.Author.IsBot) return;
             var msg = e.Message.Content;
-            //If the message does not contain a code block, return
-            var db = _commands.Services.GetRequiredService<Database>();
             //Check that the author is being ignored
-            var ignoreduser = db.IgnoredUsers.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.IgnoredUserId == e.Message.Author.Id);
+            var ignoreduser = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
             //If so bail out
             if (ignoreduser != null) return;
+            //Check it is a code block
             if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
-            var detectedWords = new List<InvaildWord>();
-            foreach (var word in db.InvaildWords)
+            var detectedWords = new List<FlaggedWord>();
+            foreach (var item in serviceClass.Data.FlaggedWords)
             {
-                if (word.Keyword.Contains(".")) word.Keyword.Replace(".", @"\.");
-                if (new Regex($@"(([^\/\/]|[^\/*][^""])({word.Keyword})([^""]))").IsMatch(msg))
+                if (item.Word.Contains(".")) item.Word.Replace(".", @"\.");
+                if (new Regex($@"(([^\/\/]|[^\/*][^""])({item.Word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
-                    detectedWords.Add(word);
+                    detectedWords.Add(item);
             }
             //If no words are detected, bail
             if (detectedWords.Count == 0) return;
@@ -117,14 +118,14 @@ namespace CodeSheriff
             var reasonBuilder = new StringBuilder();
             messageBuilder.Append("Looks like you are using one or more forbidden keywords in your code.");
             //Just grammatical stuff
-            if (detectedWords.Count > 1) messageBuilder.AppendLine($" In this case they're: **{string.Join(", ", detectedWords.Select(x => x.Keyword))}**.\n");
-            else messageBuilder.AppendLine($"In this case its: **{detectedWords.First().Keyword}**.\n");
+            if (detectedWords.Count > 1) messageBuilder.AppendLine($" In this case they're: **{string.Join(", ", detectedWords.Select(x => x.Word))}**.\n");
+            else messageBuilder.AppendLine($"In this case its: **{detectedWords.First().Word}**.\n");
             messageBuilder.AppendLine("Here is a short list of what problems may be caused:");
-            foreach (var word in detectedWords)
+            foreach (var item in detectedWords)
             {
                 //Build the reasons
-                reasonBuilder.AppendLine($"__{word.Keyword}__");
-                reasonBuilder.AppendLine(string.Join("\n", word.Reasons.Split(',').Select(x => x)));
+                reasonBuilder.AppendLine($"__{item.Word}__");
+                reasonBuilder.AppendLine(string.Join("\n", item.Reasons.Select(x => x)));
                 reasonBuilder.AppendLine("");
             }
             //Append the reasons to the overall message
@@ -132,5 +133,10 @@ namespace CodeSheriff
             //Send that message to the channel
             await e.Channel.SendMessageAsync(messageBuilder.ToString());
         }
+    }
+    public class ServiceClass
+    {
+        public Random Rand = new Random();
+        public Data Data { get; set; }
     }
 }
