@@ -1,36 +1,34 @@
+using DSharpPlus;
 using System;
 
 namespace CodeSheriff
 {
     public class Log
     {
-        public void WriteLogMessage(string message, LogOutputLevel level)
+        public void WriteLogMessage(string message, LogLevel level)
         {
+            string dateString = DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
 #if DEBUG
-            if (level == LogOutputLevel.Debug)
+            if (level == LogLevel.Debug)
             {
-                Console.WriteLine($"[{DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz")}] [Log] [Debug] {message}");
+                Console.WriteLine($"[{dateString}] [Log] [Debug] {message}");
                 return;
             }
 #endif
-            string dateString = DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             switch (level)
             {
-                case LogOutputLevel.Info:
+                case LogLevel.Info:
                     WriteColor($"[{dateString}] [Log] [Info] {message}", ConsoleColor.White);
                     break;
-                case LogOutputLevel.Warning:
+                case LogLevel.Warning:
                     WriteColor($"[{dateString}] [Log] [Warning] {message}", ConsoleColor.Yellow);
                     break;
-                case LogOutputLevel.Error:
+                case LogLevel.Error:
                     WriteColor($"[{dateString}] [Log] [Error] {message}", ConsoleColor.Red);
                     break;
-                case LogOutputLevel.Critical:
+                case LogLevel.Critical:
                     WriteColor($"[{dateString}] [Log] [Critical] {message}", ConsoleColor.Red);
-                    break;
-                case LogOutputLevel.Good:
-                    WriteColor($"[{dateString}] [Log] [Good] {message}", ConsoleColor.Green);
                     break;
                 default:
                     break;
