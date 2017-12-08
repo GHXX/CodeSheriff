@@ -51,14 +51,14 @@ namespace CodeSheriff
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
+            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
           
             if(word == null)
             {
                 serviceClass.Data.FlaggedWords.Add(new FlaggedWord()
                 {
                     GuildId = ctx.Guild.Id,
-                    Word = keyword,
+                    Word = _keyword,
                     Reasons = reasons.ToArray()
                 });
                 helper.SaveData(serviceClass.Data);
