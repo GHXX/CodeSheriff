@@ -59,6 +59,7 @@ namespace CodeSheriff
             // First off, the MessageCreated event.
             _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing MessageCreated", DateTime.Now);
             _client.MessageCreated += _client_MessageCreatedAsync;
+            _commands.CommandErrored += _commands_CommandErrored;
 
             //Register commands
             _commands.RegisterCommands<Commands>();
@@ -90,6 +91,12 @@ namespace CodeSheriff
             serviceClass.Data = helper.GetData();
             //Keep the task alive
             await Task.Delay(-1);
+        }
+
+        private Task _commands_CommandErrored(CommandErrorEventArgs e)
+        {
+            _log.WriteLogMessage(e.Exception.Message, LogLevel.Critical);
+            return Task.CompletedTask;
         }
 
         private async Task _client_MessageCreatedAsync(MessageCreateEventArgs e)
