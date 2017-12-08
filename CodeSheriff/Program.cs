@@ -34,6 +34,7 @@ namespace CodeSheriff
             //Create the Services for the bot
             var deps = new ServiceCollection()
                 .AddSingleton(new JsonHelper())
+                .AddSingleton(new ServiceClass())
                 .BuildServiceProvider();
             //We'll want to initialize our DiscordClient.
             _client = new DiscordClient(new DiscordConfiguration()
