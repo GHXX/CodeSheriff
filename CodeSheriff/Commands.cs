@@ -46,10 +46,9 @@ namespace CodeSheriff
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
         }
 
-        [Command("add"), RequireOwnerOrMod, Description("Adds a keyword to the database. Use ■ (ALT+254) instead of spaces.")]  //TODO allow pipe symbol for separation
+        [Command("add"), RequireOwnerOrMod, Description("Adds a keyword to the file.")]  //TODO allow pipe symbol for separation
         public async Task AddAsync(CommandContext ctx, string _keyword, params string[] reasons)
         {
-          string keyword = _keyword.Replace("■","");
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
             var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
