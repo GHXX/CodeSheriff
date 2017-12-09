@@ -13,7 +13,7 @@ namespace CodeSheriff.Helper
         public Data GetData()
         {
             var text = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data.json"));
-            _jsondata = JsonConvert.DeserializeObject<Data>(JsonConvert.SerializeObject(text));
+            _jsondata = JsonConvert.DeserializeObject<Data>(text);
             return _jsondata;
         }
         public Data SaveData(Data data)

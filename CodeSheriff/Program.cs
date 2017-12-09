@@ -34,6 +34,7 @@ namespace CodeSheriff
             //Create the Services for the bot
             var deps = new ServiceCollection()
                 .AddSingleton(new JsonHelper())
+                .AddSingleton(new ServiceClass())
                 .BuildServiceProvider();
             //We'll want to initialize our DiscordClient.
             _client = new DiscordClient(new DiscordConfiguration()
@@ -58,6 +59,7 @@ namespace CodeSheriff
             // First off, the MessageCreated event.
             _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Initializing MessageCreated", DateTime.Now);
             _client.MessageCreated += _client_MessageCreatedAsync;
+            _commands.CommandErrored += _commands_CommandErrored;
 
             //Register commands
             _commands.RegisterCommands<Commands>();
@@ -91,6 +93,12 @@ namespace CodeSheriff
             await Task.Delay(-1);
         }
 
+        private Task _commands_CommandErrored(CommandErrorEventArgs e)
+        {
+            _log.WriteLogMessage(e.Exception.Message, LogLevel.Critical);
+            return Task.CompletedTask;
+        }
+
         private async Task _client_MessageCreatedAsync(MessageCreateEventArgs e)
         {
             var serviceClass = _commands.Services.GetRequiredService<ServiceClass>();
@@ -119,7 +127,7 @@ namespace CodeSheriff
             messageBuilder.Append("Looks like you are using one or more forbidden keywords in your code.");
             //Just grammatical stuff
             if (detectedWords.Count > 1) messageBuilder.AppendLine($" In this case they're: **{string.Join(", ", detectedWords.Select(x => x.Word))}**.\n");
-            else messageBuilder.AppendLine($"In this case its: **{detectedWords.First().Word}**.\n");
+            else messageBuilder.AppendLine($" In this case its: **{detectedWords.First().Word}**.\n");
             messageBuilder.AppendLine("Here is a short list of what problems may be caused:");
             foreach (var item in detectedWords)
             {
