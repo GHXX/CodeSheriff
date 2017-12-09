@@ -10,16 +10,24 @@ namespace CodeSheriff.Helper
     public sealed class JsonHelper
     {
         private Data _jsondata = new Data();
+        private string fileName = Path.Combine("db","data.json");
+
         public Data GetData()
         {
-            var text = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data.json"));
+            if (!File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName)))
+            {
+                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName), "");
+                (new Log()).WriteLogMessage("Error: Database file not present. DB file was created.", DSharpPlus.LogLevel.Critical);
+                Environment.Exit(1);
+            }
+            var text = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName));
             _jsondata = JsonConvert.DeserializeObject<Data>(text);
             return _jsondata;
         }
         public Data SaveData(Data data)
         {
-            var json = JsonConvert.SerializeObject(data);
-            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data.json"), json);
+            var json = JsonConvert.SerializeObject(data, new JsonSerializerSettings { Formatting = Formatting.Indented });
+            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName), json);
             _jsondata = GetData();
             return _jsondata;
         }
@@ -46,5 +54,5 @@ namespace CodeSheriff.Helper
         public string Word { get; set; }
         [JsonProperty("reasons")]
         public string[] Reasons { get; set; }
-    }   
+    }
 }
