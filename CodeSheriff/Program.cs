@@ -119,7 +119,7 @@ namespace CodeSheriff
             foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
                 if (item.Word.Contains(".")) item.Word.Replace(".", @"\.");
-                if (codeBlocks.Any(x => new Regex($@"(^|[^A-Za-z0-9@]){item.Word}(\s|;|\.|$|([^A-Za-z0-9]))").IsMatch(x)))
+                if (codeBlocks.Any(x => new Regex($@"{(!item.Word.Contains(".")?@"(^|[^A-Za-z0-9@])":string.Empty)}{item.Word}(\s|;|\.|$|([^A-Za-z0-9]))").IsMatch(x)))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(item);
             }
