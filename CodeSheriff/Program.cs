@@ -77,7 +77,7 @@ namespace CodeSheriff
             {
                 //I had to reinstall dsp and forgot what version you were using so just went to 3.2.3 stable. Feel free to edit - Li
 
-                await _client.UpdateStatusAsync(new DiscordActivity($"people code on {e.Client.Guilds.Count}servers.", ActivityType.Watching), UserStatus.Online);
+                await _client.UpdateStatusAsync(new DiscordActivity($"people code on {e.Client.Guilds.Count} servers.", ActivityType.Watching), UserStatus.Online);
                 _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Ready!", DateTime.Now);
             };
 
@@ -103,7 +103,7 @@ namespace CodeSheriff
         {
             var serviceClass = _commands.Services.GetRequiredService<ServiceClass>();
             //If it's a bot return
-            if (e.Message.Author.IsBot) return;
+            if (e.Message.Author.IsBot || e.Guild == null) return;
             var msg = e.Message.Content;
             //Check that the author is being ignored
             var ignoreduser = serviceClass.Data.IgnoredUsers?.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
