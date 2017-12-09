@@ -6,8 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="4.0.0-beta-00368" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-beta-00368" />
+    <None Remove="database.db" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DSharpPlus" Version="4.0.0-beta-00393" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-beta-00393" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.0.1" />
   </ItemGroup>
 
