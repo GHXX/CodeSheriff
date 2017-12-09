@@ -52,8 +52,8 @@ namespace CodeSheriff
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
             var word = serviceClass.Data.FlaggedWords?.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
-          
-            if(word == null)
+
+            if (word == null)
             {
                 serviceClass.Data.FlaggedWords.Add(new FlaggedWord()
                 {
@@ -82,13 +82,17 @@ namespace CodeSheriff
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
         }
 
-        [Command("shutdown"), RequireOwner, Description("Shuts down the bot"), Hidden]
+        [Command("shutdown"), Aliases("exit"), RequireOwner, Description("Shuts down the bot"), Hidden]
         public async Task ShutdownAsync(CommandContext ctx)
         {
+            Console.WriteLine("Shutting down...");
             //Make the bot appear offline
+            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
+            var helper = ctx.Services.GetRequiredService<JsonHelper>();
+            helper.SaveData(serviceClass.Data);
+
             await ctx.Client.UpdateStatusAsync(userStatus: UserStatus.Invisible);
             await ctx.Client.DisconnectAsync();
-            Console.WriteLine("Shutting down...");
         }
     }
 
