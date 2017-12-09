@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -106,16 +106,20 @@ namespace CodeSheriff
             if (e.Message.Author.IsBot) return;
             var msg = e.Message.Content;
             //Check that the author is being ignored
-            var ignoreduser = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
+            var ignoreduser = serviceClass.Data.IgnoredUsers?.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
             //If so bail out
             if (ignoreduser != null) return;
             //Check it is a code block
-            if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
+            var t = Regex.Replace(e.Message.Content.Replace("```", "`"), "\".*?\"", "", RegexOptions.Singleline);
+            var codeBlocks = Regex.Matches(t, @"`.*?`", RegexOptions.Singleline).Select(x => x.Value);
+            codeBlocks = codeBlocks.Select(x => Regex.Replace(x, "//.*", ""));
+            if (codeBlocks.Count() == 0) return;
+
             var detectedWords = new List<FlaggedWord>();
-            foreach (var item in serviceClass.Data.FlaggedWords)
+            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
                 if (item.Word.Contains(".")) item.Word.Replace(".", @"\.");
-                if (new Regex($@"(([^\/\/]|[^\/*][^""])({item.Word})([^""]))").IsMatch(msg))
+                if (codeBlocks.Any(x => new Regex($@"(^|[^A-Za-z0-9@]){item.Word}(\s|;|\.|$|([^A-Za-z0-9]))").IsMatch(x)))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(item);
             }
@@ -132,8 +136,8 @@ namespace CodeSheriff
             foreach (var item in detectedWords)
             {
                 //Build the reasons
-                reasonBuilder.AppendLine($"__{item.Word}__");
-                reasonBuilder.AppendLine(string.Join("\n", item.Reasons.Select(x => x)));
+                reasonBuilder.AppendLine($"**{item.Word}**:");
+                reasonBuilder.AppendLine(string.Join("\n", item.Reasons.Select(x => "→ " + x)));
                 reasonBuilder.AppendLine("");
             }
             //Append the reasons to the overall message

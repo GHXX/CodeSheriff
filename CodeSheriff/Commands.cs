@@ -51,7 +51,7 @@ namespace CodeSheriff
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
+            var word = serviceClass.Data.FlaggedWords?.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
           
             if(word == null)
             {
