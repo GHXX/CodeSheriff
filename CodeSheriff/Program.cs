@@ -112,7 +112,7 @@ namespace CodeSheriff
             //Check it is a code block
             if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
             var detectedWords = new List<FlaggedWord>();
-            foreach (var item in serviceClass.Data.FlaggedWords)
+            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
                 var word = item.Word.Replace(".", @"\.");
                 Console.WriteLine(word);
