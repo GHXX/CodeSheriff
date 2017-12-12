@@ -110,16 +110,13 @@ namespace CodeSheriff
             //If so bail out
             if (ignoreduser != null) return;
             //Check it is a code block
-            var t = Regex.Replace(e.Message.Content.Replace("```", "`"), "\".*?\"", "", RegexOptions.Singleline);
-            var codeBlocks = Regex.Matches(t, @"`.*?`", RegexOptions.Singleline).Select(x => x.Value);
-            codeBlocks = codeBlocks.Select(x => Regex.Replace(x, "//.*", ""));
-            if (codeBlocks.Count() == 0) return;
-
+            if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
             var detectedWords = new List<FlaggedWord>();
-            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
+            foreach (var item in serviceClass.Data.FlaggedWords)
             {
-                if (item.Word.Contains(".")) item.Word.Replace(".", @"\.");
-                if (codeBlocks.Any(x => new Regex($@"{(!item.Word.Contains(".")?@"(^|[^A-Za-z0-9@])":string.Empty)}{item.Word}(\s|;|\.|$|([^A-Za-z0-9]))").IsMatch(x)))
+                var word = item.Word.Replace(".", @"\.");
+                Console.WriteLine(word);
+                if (new Regex($@"(([^\/\/]|[^\/*][^""])({word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(item);
             }
@@ -128,6 +125,7 @@ namespace CodeSheriff
 
             var messageBuilder = new StringBuilder();
             var reasonBuilder = new StringBuilder();
+
             messageBuilder.Append("Looks like you are using one or more forbidden keywords in your code.");
             //Just grammatical stuff
             if (detectedWords.Count > 1) messageBuilder.AppendLine($" In this case they're: **{string.Join(", ", detectedWords.Select(x => x.Word))}**.\n");

@@ -102,8 +102,9 @@ namespace CodeSheriff
         {
             return Task.Run(() =>
             {
-                var modroles = ctx.Member.Roles.Where(x => x.Permissions.HasPermission(Permissions.ManageGuild));
-                if (modroles != null || ctx.Member.Id == ctx.Client.CurrentApplication.Owner.Id) return true;
+                var IsMod = ctx.Member.Roles.Any(x => x.Permissions.HasPermission(Permissions.ManageGuild));
+                var IsBotOwner = ctx.Member.Id == ctx.Client.CurrentApplication.Owner.Id;
+                if (IsMod || IsBotOwner) return true;
                 else return false;
             });
         }
