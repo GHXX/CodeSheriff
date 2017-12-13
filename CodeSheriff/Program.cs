@@ -19,7 +19,7 @@ namespace CodeSheriff
         private DiscordClient _client { get; set; }
 
         private CommandsNextExtension _commands { get; set; }
-
+        private DebugLogger _debugLogger = new DebugLogger();
         private Log _log = new Log();
 
         //Instead of your mess, make it an async main so we can run everything async
@@ -115,7 +115,7 @@ namespace CodeSheriff
             foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
                 var word = item.Word.Replace(".", @"\.");
-                Console.WriteLine(word);
+                _debugLogger.WriteDebugMessage(word);
                 if (new Regex($@"(([^\/\/]|[^\/*][^""])({word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(item);
