@@ -1,3 +1,4 @@
+using DSharpPlus;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,24 +11,24 @@ namespace CodeSheriff.Helper
     public sealed class JsonHelper
     {
         private Data _jsondata = new Data();
-        private string fileName = Path.Combine("db","data.json");
+        private string _path = Path.Combine(AppContext.BaseDirectory,"data.json");
 
         public Data GetData()
         {
-            if (!File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName)))
+            if (!File.Exists(_path))
             {
-                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName), "");
-                (new Log()).WriteLogMessage("Error: Database file not present. DB file was created.", DSharpPlus.LogLevel.Critical);
+                File.WriteAllText(_path, "");
+                Console.WriteLine("Error: Json file not present. Json file was created.");
                 Environment.Exit(1);
             }
-            var text = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName));
+            var text = File.ReadAllText(_path);
             _jsondata = JsonConvert.DeserializeObject<Data>(text);
             return _jsondata;
         }
         public Data SaveData(Data data)
         {
             var json = JsonConvert.SerializeObject(data, new JsonSerializerSettings { Formatting = Formatting.Indented });
-            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName), json);
+            File.WriteAllText(_path, json);
             _jsondata = GetData();
             return _jsondata;
         }
