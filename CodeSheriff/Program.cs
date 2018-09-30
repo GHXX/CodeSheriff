@@ -22,7 +22,6 @@ namespace CodeSheriff
 
         private Log _log = new Log();
 
-        //Instead of your mess, make it an async main so we can run everything async
         public static void Main(string[] args)
         {
             Console.Title = "CodeSheriff";
@@ -48,7 +47,7 @@ namespace CodeSheriff
             });
             _commands = _client.UseCommandsNext(new CommandsNextConfiguration()
             {
-                StringPrefix = "sheriff! ", //Bot prefix
+                StringPrefixes = new[] { "sheriff!", "sheriff! ", "s!", "s! " }, //Bot prefixes
                 CaseSensitive = false, //None case sensitive commands
                 Services = deps, //Set the dependencies
                 EnableDms = false, //Disable commands in dms

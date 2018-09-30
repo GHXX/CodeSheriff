@@ -10,7 +10,7 @@ using CodeSheriff.Helper;
 
 namespace CodeSheriff
 {
-    public class Commands
+    public class Commands : BaseCommandModule
     {
         [Command("ignoreme"), Description("This command tells the bot to ingore your code")]
         public async Task IgnoreMeAsync(CommandContext ctx)
