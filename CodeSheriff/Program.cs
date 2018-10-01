@@ -1,16 +1,16 @@
-﻿using System;
+﻿using CodeSheriff.Helper;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using DSharpPlus;
-using DSharpPlus.Entities;
 using System.Text.RegularExpressions;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.EventArgs;
-using Microsoft.Extensions.DependencyInjection;
-using CodeSheriff.Helper;
+using System.Threading.Tasks;
 
 namespace CodeSheriff
 {
@@ -19,8 +19,6 @@ namespace CodeSheriff
         private DiscordClient _client { get; set; }
 
         private CommandsNextExtension _commands { get; set; }
-
-        private Log _log = new Log();
 
         public static void Main(string[] args)
         {
@@ -66,7 +64,7 @@ namespace CodeSheriff
             // Client errored event
             _client.ClientErrored += (e) =>
             {
-                _log.WriteLogMessage($"[_client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogLevel.Error);
+                Log.WriteLogMessage($"[_client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogLevel.Error);
                 return Task.CompletedTask;
             };
 
@@ -94,7 +92,7 @@ namespace CodeSheriff
 
         private Task _commands_CommandErrored(CommandErrorEventArgs e)
         {
-            _log.WriteLogMessage(e.Exception.Message, LogLevel.Critical);
+            Log.WriteLogMessage(e.Exception.Message, LogLevel.Critical);
             return Task.CompletedTask;
         }
 
@@ -105,19 +103,19 @@ namespace CodeSheriff
             if (e.Message.Author.IsBot || e.Guild == null) return;
             var msg = e.Message.Content;
             //Check that the author is being ignored
-            var ignoreduser = serviceClass.Data.IgnoredUsers?.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
+            var ignoreduser = serviceClass.Data.IgnoredUsers?.FirstOrDefault(x => x?.GuildId == e.Guild.Id && x?.UserId == e.Message.Author.Id);
             //If so bail out
             if (ignoreduser != null) return;
             //Check it is a code block
             if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
             var detectedWords = new List<FlaggedWord>();
-            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
+            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x?.GuildId == e.Guild.Id))
             {
-                var word = item.Word.Replace(".", @"\.");
+                var word = item?.Word.Replace(".", @"\.");
                 Console.WriteLine(word);
                 if (new Regex($@"(([^\/\/]|[^\/*][^""])({word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
-                    detectedWords.Add(item);
+                    detectedWords.Add(item.Value);
             }
             //If no words are detected, bail
             if (detectedWords.Count == 0) return;
