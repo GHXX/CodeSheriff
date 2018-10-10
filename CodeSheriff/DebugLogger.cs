@@ -16,7 +16,7 @@ namespace CodeSheriff
 
         public void WriteDebugLog(string message)
         {
-            new Log().WriteLogMessage(message, LogLevel.Debug);
+            Log.WriteLogMessage(message, LogLevel.Debug);
         }
     }
 }
