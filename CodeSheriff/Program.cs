@@ -113,6 +113,7 @@ namespace CodeSheriff
             {
                 var word = item.Word.Replace(".", @"\.");
                 Console.WriteLine(word);
+              
                 if (new Regex($@"(([^\/\/]|[^\/*][^""])({word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(item);

@@ -43,14 +43,4 @@ namespace CodeSheriff
             Console.ForegroundColor = oldColor;
         }
     }
-
-    public enum LogOutputLevel
-    {
-        Debug = 0,
-        Info = 1,
-        Warning = 2,
-        Error = 3,
-        Critical = 4,
-        Good = 5
-    }
 }
