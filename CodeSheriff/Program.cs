@@ -103,19 +103,19 @@ namespace CodeSheriff
             if (e.Message.Author.IsBot || e.Guild == null) return;
             var msg = e.Message.Content;
             //Check that the author is being ignored
-            var ignoreduser = serviceClass.Data.IgnoredUsers?.FirstOrDefault(x => x?.GuildId == e.Guild.Id && x?.UserId == e.Message.Author.Id);
+            var ignoreduser = serviceClass.Data.IgnoredUsers?.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
             //If so bail out
             if (ignoreduser != null) return;
             //Check it is a code block
             if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
             var detectedWords = new List<FlaggedWord>();
-            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x?.GuildId == e.Guild.Id))
+            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
-                var word = item?.Word.Replace(".", @"\.");
+                var word = item.Word.Replace(".", @"\.");
                 Console.WriteLine(word);
                 if (new Regex($@"(([^\/\/]|[^\/*][^""])({word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
-                    detectedWords.Add(item.Value);
+                    detectedWords.Add(item);
             }
             //If no words are detected, bail
             if (detectedWords.Count == 0) return;

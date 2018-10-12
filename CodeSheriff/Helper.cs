@@ -35,9 +35,9 @@ namespace CodeSheriff.Helper
     public struct Data
     {
         [JsonProperty("ignoredUsers")]
-        public List<IgnoredUser?> IgnoredUsers { get; private set; }
+        public List<IgnoredUser> IgnoredUsers { get; private set; }
         [JsonProperty("flaggedWords")]
-        public List<FlaggedWord?> FlaggedWords { get; private set; }
+        public List<FlaggedWord> FlaggedWords { get; private set; }
     }
 
     public struct IgnoredUser
