@@ -3,9 +3,9 @@ using System;
 
 namespace CodeSheriff
 {
-    public class Log
+    public static class Log
     {
-        public void WriteLogMessage(string message, LogLevel level)
+        public static void WriteLogMessage(string message, LogLevel level)
         {
             string dateString = DateTime.Now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
 #if DEBUG
@@ -35,7 +35,7 @@ namespace CodeSheriff
             }
         }
 
-        private void WriteColor(string message, ConsoleColor color)
+        private static void WriteColor(string message, ConsoleColor color)
         {
             var oldColor = Console.ForegroundColor;
             Console.ForegroundColor = color;

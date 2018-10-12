@@ -1,16 +1,16 @@
-﻿using System;
+﻿using CodeSheriff.Helper;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using DSharpPlus;
-using DSharpPlus.Entities;
 using System.Text.RegularExpressions;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.EventArgs;
-using Microsoft.Extensions.DependencyInjection;
-using CodeSheriff.Helper;
+using System.Threading.Tasks;
 
 namespace CodeSheriff
 {
@@ -19,8 +19,6 @@ namespace CodeSheriff
         private DiscordClient _client { get; set; }
 
         private CommandsNextExtension _commands { get; set; }
-        private DebugLogger _debugLogger = new DebugLogger();
-        private Log _log = new Log();
 
         public static void Main(string[] args)
         {
@@ -66,7 +64,7 @@ namespace CodeSheriff
             // Client errored event
             _client.ClientErrored += (e) =>
             {
-                _log.WriteLogMessage($"[_client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogLevel.Error);
+                Log.WriteLogMessage($"[_client Errored] \n\n{e.EventName}\n\n{e.Exception.ToString()}\n\n{e.Exception.StackTrace?.ToString()}\n\n{e.Exception.Message?.ToString()}\n\n{e.Exception.InnerException?.ToString()}\n\n{e.Exception.InnerException.InnerException?.ToString()}", LogLevel.Error);
                 return Task.CompletedTask;
             };
 
@@ -94,7 +92,7 @@ namespace CodeSheriff
 
         private Task _commands_CommandErrored(CommandErrorEventArgs e)
         {
-            _log.WriteLogMessage(e.Exception.Message, LogLevel.Critical);
+            Log.WriteLogMessage(e.Exception.Message, LogLevel.Critical);
             return Task.CompletedTask;
         }
 
@@ -114,7 +112,8 @@ namespace CodeSheriff
             foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
                 var word = item.Word.Replace(".", @"\.");
-                _debugLogger.WriteDebugMessage(word);
+                Console.WriteLine(word);
+              
                 if (new Regex($@"(([^\/\/]|[^\/*][^""])({word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(item);
