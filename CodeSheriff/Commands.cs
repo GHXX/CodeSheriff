@@ -17,8 +17,8 @@ namespace CodeSheriff
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x?.UserId == ctx.Member.Id && x?.GuildId == ctx.Guild.Id);
-            if (ignored == null)
+            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            if (ignored.UserId != 0)
             {
                 serviceClass.Data.IgnoredUsers.Add(new IgnoredUser()
                 {
@@ -36,8 +36,8 @@ namespace CodeSheriff
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x?.UserId == ctx.Member.Id && x?.GuildId == ctx.Guild.Id);
-            if (ignored != null)
+            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            if (ignored.UserId != 0)
             {
                 serviceClass.Data.IgnoredUsers.Remove(ignored);
                 helper.SaveData(serviceClass.Data);
@@ -51,7 +51,7 @@ namespace CodeSheriff
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords?.FirstOrDefault(x => x?.Word == _keyword && x?.GuildId == ctx.Guild.Id);
+            var word = serviceClass.Data.FlaggedWords?.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
 
             if (word == null)
             {
@@ -72,8 +72,8 @@ namespace CodeSheriff
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
             var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x?.Word == keyword && x?.GuildId == ctx.Guild.Id);
-            if (word != null)
+            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
+            if (word.Word != null)
             {
                 serviceClass.Data.FlaggedWords.Remove(word);
                 helper.SaveData(serviceClass.Data);
