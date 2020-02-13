@@ -6,7 +6,7 @@ using DSharpPlus.CommandsNext;
 using System.Linq;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.DependencyInjection;
-using CodeSheriff.Helper;
+using CodeSheriff.DatabaseModel;
 
 namespace CodeSheriff
 {
@@ -16,16 +16,16 @@ namespace CodeSheriff
         public async Task IgnoreMeAsync(CommandContext ctx)
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            var db = ctx.Services.GetRequiredService<Model>();
+            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored.UserId != 0)
             {
-                serviceClass.Data.IgnoredUsers.Add(new IgnoredUser()
+                db.IgnoredUsers.Add(new IgnoredUser()
                 {
                     UserId = ctx.Member.Id,
                     GuildId = ctx.Guild.Id
                 });
-                helper.SaveData(serviceClass.Data);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
@@ -35,12 +35,12 @@ namespace CodeSheriff
         public async Task UnIgnoreMeAsync(CommandContext ctx)
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            var db = ctx.Services.GetRequiredService<Model>();
+            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
             if (ignored.UserId != 0)
             {
-                serviceClass.Data.IgnoredUsers.Remove(ignored);
-                helper.SaveData(serviceClass.Data);
+                db.IgnoredUsers.Remove(ignored);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
@@ -50,18 +50,18 @@ namespace CodeSheriff
         public async Task AddAsync(CommandContext ctx, string _keyword, [RemainingText] string reasons)
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords?.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
+            var db = ctx.Services.GetRequiredService<Model>();
+            var word = db.FlaggedWords?.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
 
             if (word == null)
             {
-                serviceClass.Data.FlaggedWords.Add(new FlaggedWord()
+                db.FlaggedWords.Add(new FlaggedWord()
                 {
                     GuildId = ctx.Guild.Id,
                     Word = _keyword,
                     Reasons = reasons.Split(" | ")
                 });
-                helper.SaveData(serviceClass.Data);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
@@ -71,12 +71,12 @@ namespace CodeSheriff
         public async Task RemoveAsync(CommandContext ctx, string keyword)
         {
             var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
+            var db = ctx.Services.GetRequiredService<Model>();
+            var word = db.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
             if (word.Word != null)
             {
-                serviceClass.Data.FlaggedWords.Remove(word);
-                helper.SaveData(serviceClass.Data);
+                db.FlaggedWords.Remove(word);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
@@ -87,9 +87,8 @@ namespace CodeSheriff
         {
             Console.WriteLine("Shutting down...");
             await ctx.Client.UpdateStatusAsync(userStatus: UserStatus.Offline);
-            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            helper.SaveData(serviceClass.Data);
+            var db = ctx.Services.GetRequiredService<Model>();
+            await db.SaveChangesAsync();
 
             await ctx.Client.UpdateStatusAsync(userStatus: UserStatus.Invisible);
             await ctx.Client.DisconnectAsync();
@@ -115,8 +114,8 @@ namespace CodeSheriff
         {
             return Task.Run(() =>
             {
-                var IsMod = ctx.Member.Roles.Any(x => x.Permissions.HasPermission(Permissions.ManageGuild));
-                var IsBotOwner = ctx.Member.Id == ctx.Client.CurrentApplication.Owner.Id;
+                var IsMod = ctx.Member.Roles.Any(x => x.Permissions.HasPermission(Permissions.ManageChannels));
+                var IsBotOwner = ctx.Client.CurrentApplication.Owners.FirstOrDefault(x => x.Id == ctx.Member.Id) == null;
                 if (IsMod || IsBotOwner) return true;
                 else return false;
             });

@@ -1,4 +1,4 @@
-﻿using CodeSheriff.Helper;
+﻿using CodeSheriff.DatabaseModel;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
@@ -30,7 +30,7 @@ namespace CodeSheriff
         {
             //Create the Services for the bot
             var deps = new ServiceCollection()
-                .AddSingleton(new JsonHelper())
+                .AddSingleton(new Model())
                 .AddSingleton(new ServiceClass())
                 .BuildServiceProvider();
             //We'll want to initialize our DiscordClient.
@@ -83,10 +83,6 @@ namespace CodeSheriff
             await _client.ConnectAsync();
             _client.DebugLogger.LogMessage(LogLevel.Info, "Bot", "Connected..", DateTime.Now);
 
-            var helper = _commands.Services.GetRequiredService<JsonHelper>();
-            var serviceClass = _commands.Services.GetRequiredService<ServiceClass>();
-            serviceClass.Data = helper.GetData();
-            //Keep the task alive
             await Task.Delay(-1);
         }
 
@@ -98,18 +94,18 @@ namespace CodeSheriff
 
         private async Task _client_MessageCreatedAsync(MessageCreateEventArgs e)
         {
-            var serviceClass = _commands.Services.GetRequiredService<ServiceClass>();
+            var db = _commands.Services.GetRequiredService<Model>();
             //If it's a bot return
             if (e.Message.Author.IsBot || e.Guild == null) return;
             var msg = e.Message.Content;
             //Check that the author is being ignored
-            var ignoreduser = serviceClass.Data.IgnoredUsers?.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
+            var ignoreduser = db.IgnoredUsers?.FirstOrDefault(x => x.GuildId == e.Guild.Id && x.UserId == e.Message.Author.Id);
             //If so bail out
             if (ignoreduser != null) return;
             //Check it is a code block
             if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
             var detectedWords = new List<FlaggedWord>();
-            foreach (var item in serviceClass.Data.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
+            foreach (var item in db.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
                 var word = item.Word.Replace(".", @"\.");
                 Console.WriteLine(word);
@@ -145,6 +141,5 @@ namespace CodeSheriff
     public class ServiceClass
     {
         public Random Rand = new Random();
-        public Data Data { get; set; }
     }
 }
