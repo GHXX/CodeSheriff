@@ -99,11 +99,11 @@ namespace CodeSheriff
         private async Task Client_MessageCreatedAsync(MessageCreateEventArgs e)
         {
             var db = Commands.Services.GetRequiredService<Model>();
-            
+
             //If it's a bot return
             if (e.Message.Author.IsBot || e.Guild == null) return;
             var msg = e.Message.Content;
-            
+
             //Check it is a code block
             if (!new Regex(@"```[\w]*\n[\s\S]*\n```").IsMatch(msg)) return;
 
@@ -116,13 +116,13 @@ namespace CodeSheriff
                 db.DbSemaphore.Release();
                 return;
             }
-            
+
             var detectedWords = new List<FlaggedWord>();
             foreach (var item in db.FlaggedWords.Where(x => x.GuildId == e.Guild.Id))
             {
                 var word = item.Word.Replace(".", @"\.");
                 Console.WriteLine(word);
-              
+
                 if (new Regex($@"(([^\/\/]|[^\/*][^""])({word})([^""]))").IsMatch(msg))
                     //If an invalid word is found, add it to the list
                     detectedWords.Add(item);
