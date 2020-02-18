@@ -1,10 +1,9 @@
 # CodeSheriff
-Just a very simple discord bot for reminding D#+ users not to use bad things >:)
+Just a very simple discord bot for telling users when they are using bad practices.
 
 # What does it do?
 
-If someone posts code into the chat (either a code block with the triple `) then
-the bot will check the code and notify the user if it finds something thats usually very bad (i.e. .Result)
+If someone posts code into the chat (using a code block), it will check the code and notify the user if it finds something that is incorrect (i.e. `.Result` on an Asynchronous method). 
 
-Invite:
+Invite Link:
 https://discordapp.com/oauth2/authorize?client_id=380781802639458315&scope=bot&permissions=2048
