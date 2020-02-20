@@ -6,7 +6,7 @@ using DSharpPlus.CommandsNext;
 using System.Linq;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.DependencyInjection;
-using CodeSheriff.Helper;
+using CodeSheriff.DatabaseModel;
 
 namespace CodeSheriff
 {
@@ -15,87 +15,91 @@ namespace CodeSheriff
         [Command("ignoreme"), Description("This command tells the bot to ingore your code")]
         public async Task IgnoreMeAsync(CommandContext ctx)
         {
-            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
-            if (ignored.UserId != 0)
+            var db = ctx.Services.GetRequiredService<Model>();
+            await db.DbSemaphore.WaitAsync();
+            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            if (ignored == null)
             {
-                serviceClass.Data.IgnoredUsers.Add(new IgnoredUser()
+                db.IgnoredUsers.Add(new IgnoredUser()
                 {
                     UserId = ctx.Member.Id,
                     GuildId = ctx.Guild.Id
                 });
-                helper.SaveData(serviceClass.Data);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
+            db.DbSemaphore.Release();
         }
 
         [Command("unignoreme"), Description("This command tells the bot to keep judging your code")]
         public async Task UnIgnoreMeAsync(CommandContext ctx)
         {
-            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var ignored = serviceClass.Data.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
-            if (ignored.UserId != 0)
+            var db = ctx.Services.GetRequiredService<Model>();
+            await db.DbSemaphore.WaitAsync();
+            var ignored = db.IgnoredUsers.FirstOrDefault(x => x.UserId == ctx.Member.Id && x.GuildId == ctx.Guild.Id);
+            if (ignored != null)
             {
-                serviceClass.Data.IgnoredUsers.Remove(ignored);
-                helper.SaveData(serviceClass.Data);
+                db.IgnoredUsers.Remove(ignored);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
+            db.DbSemaphore.Release();
         }
 
         [Command("add"), RequireOwnerOrMod, Description("Adds a keyword to the file.")]
-        public async Task AddAsync(CommandContext ctx, string _keyword, [RemainingText] string reasons)
+        public async Task AddKeywordAsync(CommandContext ctx, string _keyword, [RemainingText] string reasons)
         {
-            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords?.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
-
+            var db = ctx.Services.GetRequiredService<Model>();
+            await db.DbSemaphore.WaitAsync();
+            var word = db.FlaggedWords.FirstOrDefault(x => x.Word == _keyword && x.GuildId == ctx.Guild.Id);
             if (word == null)
             {
-                serviceClass.Data.FlaggedWords.Add(new FlaggedWord()
+                db.FlaggedWords.Add(new FlaggedWord()
                 {
                     GuildId = ctx.Guild.Id,
                     Word = _keyword,
-                    Reasons = reasons.Split(" | ")
+                    Reasons = reasons
                 });
-                helper.SaveData(serviceClass.Data);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
+            db.DbSemaphore.Release();
         }
 
         [Command("remove"), RequireOwnerOrMod, Description("Removes a keyword from the database")]
-        public async Task RemoveAsync(CommandContext ctx, string keyword)
+        public async Task RemoveKeywordAsync(CommandContext ctx, string keyword)
         {
-            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            var word = serviceClass.Data.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
+            var db = ctx.Services.GetRequiredService<Model>();
+            await db.DbSemaphore.WaitAsync();
+            var word = db.FlaggedWords.FirstOrDefault(x => x.Word == keyword && x.GuildId == ctx.Guild.Id);
             if (word.Word != null)
             {
-                serviceClass.Data.FlaggedWords.Remove(word);
-                helper.SaveData(serviceClass.Data);
+                db.FlaggedWords.Remove(word);
+                await db.SaveChangesAsync();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
             else await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
+            db.DbSemaphore.Release();
         }
 
         [Command("shutdown"), Aliases("exit"), RequireOwner, Description("Shuts down the bot"), Hidden]
-        public async Task ShutdownAsync(CommandContext ctx)
+        public async Task ShutdownBotAsync(CommandContext ctx)
         {
             Console.WriteLine("Shutting down...");
             await ctx.Client.UpdateStatusAsync(userStatus: UserStatus.Offline);
-            var serviceClass = ctx.Services.GetRequiredService<ServiceClass>();
-            var helper = ctx.Services.GetRequiredService<JsonHelper>();
-            helper.SaveData(serviceClass.Data);
+            var db = ctx.Services.GetRequiredService<Model>();
+            await db.DbSemaphore.WaitAsync();
+            await db.SaveChangesAsync();
+            db.DbSemaphore.Release();
 
             await ctx.Client.UpdateStatusAsync(userStatus: UserStatus.Invisible);
             await ctx.Client.DisconnectAsync();
         }
 
-        [Command("serverinfo"), Aliases("sinfo", "guildifo", "ginfo", "server", "guild")]
+        [Command("serverinfo"), Aliases("sinfo", "guildinfo", "ginfo", "server", "guild")]
         public async Task ServerInfoAsync(CommandContext ctx) => await ctx.RespondAsync(embed: new DiscordEmbedBuilder()
         {
             Author = new DiscordEmbedBuilder.EmbedAuthor()
@@ -115,10 +119,10 @@ namespace CodeSheriff
         {
             return Task.Run(() =>
             {
-                var IsMod = ctx.Member.Roles.Any(x => x.Permissions.HasPermission(Permissions.ManageGuild));
-                var IsBotOwner = ctx.Member.Id == ctx.Client.CurrentApplication.Owner.Id;
-                if (IsMod || IsBotOwner) return true;
-                else return false;
+                //Maybe change this so users can assign a specific mod role instead of having a single perm check
+                var IsMod = ctx.Member.Roles.Any(x => x.Permissions.HasPermission(Permissions.ManageChannels));
+                var IsBotOwner = ctx.Client.CurrentApplication.Owners.FirstOrDefault(x => x.Id == ctx.Member.Id) != null;
+                return (IsMod || IsBotOwner);
             });
         }
     }
